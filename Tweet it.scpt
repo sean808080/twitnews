@@ -1,14 +1,21 @@
--- Follow me on Twitter: http://twitter.com/hackedunit
+--modified by @sean808080 to include bit.ly authentication and history
+--follow @sean808080 at http://twitter.com/sean808080 or http://bit.ly/sean808080 
+--based on original twitnews by tinu a.k.a. @hackedunit on twitter 
+--usage enter your bit.ly login and api_key in the second and third lines below
+--save to ~/Library/Application Support/NetNewsWire/Scripts
+--Now you can access the script from the scripts menu on NetNewsWire. 
 
 set charcount_limit to 140
+set login to "YOUR BITLY LOGIN"
+set api_key to "YOUR BITLY API KEY"
 
 tell application "GrowlHelperApp"
 	set the allNotificationsList to {"Success Notification", "Error Notification"}
 	set the enabledNotificationsList to {"Success Notification", "Error Notification"}
 	
-	register as application �
-		"Twitnews" all notifications allNotificationsList �
-		default notifications enabledNotificationsList �
+	register as application ¬
+		"Twitnews" all notifications allNotificationsList ¬
+		default notifications enabledNotificationsList ¬
 		icon of application "NetNewsWire"
 end tell
 
@@ -25,16 +32,20 @@ tell application "NetNewsWire"
 		set URL_list to URLs of tabs
 		set title_list to titles of tabs
 		set feed_url to item i of URL_list
+		
 		set feed_title to item i of title_list
 	end if
-	-- Build the GET request for the Tr.im API
-	set feed_url to "http://api.tr.im/v1/trim_simple?url=" & feed_url
-	-- Submit the GET request
-	set cmd to "curl " & feed_url
-	set feed_url to (do shell script cmd)
+	
+	set bitly to ¬
+		¬
+			"curl --stderr /dev/null \"http://api.bit.ly/shorten?longUrl=" & feed_url & "&history=1&version=2.0.1&login=" & login ¬
+		& "&apiKey=" & api_key ¬
+		& "&history=1\"| grep shortUrl | grep -o http.*[/a-zA-Z0-9]"
+	set bitly to (do shell script bitly)
+	
 end tell
 
-set tweet to feed_title & " " & feed_url
+set tweet to feed_title & " " & bitly
 
 -- let the user edit the tweet
 set tweet_dialog to display dialog "Edit your Twitter status" with title "TwitNews" default answer tweet cancel button 1 default button 2 buttons {"Cancel", "Send"}
@@ -47,7 +58,7 @@ end if
 
 set charcount_tweet to (count characters of tweet)
 
-if charcount_tweet � charcount_limit then
+if charcount_tweet ≤ charcount_limit then
 	
 	-- get login from keychain
 	try
